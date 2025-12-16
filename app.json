@@ -30,15 +30,15 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      "expo-font",
-      "expo-web-browser"
+      "expo-router"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
+      "router": {
+        "origin": false
+      },
       "apiUrl": "https://uncerebric-karma-nonnitric.ngrok-free.dev/api",
       "eas": {
         "projectId": "3c6e10c8-d200-4117-8c09-68b695727520"

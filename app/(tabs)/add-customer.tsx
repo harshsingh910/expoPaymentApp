@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { UserPlus, User, Calendar, Percent, Clock, DollarSign, CheckCircle } from 'lucide-react-native';
 import { ApiService } from '@/services/api';
@@ -20,73 +19,64 @@ const { width } = Dimensions.get('window');
 const isSmallScreen = width < 375;
 
 export default function AddCustomerScreen() {
-  const [formData, setFormData] = useState({
-    customerName: '',
-    issueDate: '',
-    interestRate: '',
-    tenureMonths: '',
-    emiDueAmount: '',
-    outstandingBalance: '',
-  });
+  const [customerName, setCustomerName] = useState('');
+  const [issueDate, setIssueDate] = useState('');
+  const [interestRate, setInterestRate] = useState('');
+  const [tenureMonths, setTenureMonths] = useState('');
+  const [emiDueAmount, setEmiDueAmount] = useState('');
+  const [outstandingBalance, setOutstandingBalance] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  const updateField = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const validateForm = () => {
-    const { customerName, issueDate, interestRate, tenureMonths, emiDueAmount, outstandingBalance } = formData;
-    
+  const validateForm = useCallback(() => {
     if (!customerName.trim()) {
       Alert.alert('Validation Error', 'Please enter customer name');
       return false;
     }
-
     if (!issueDate.trim()) {
       Alert.alert('Validation Error', 'Please enter issue date');
       return false;
     }
-
     if (!interestRate.trim() || parseFloat(interestRate) <= 0) {
       Alert.alert('Validation Error', 'Please enter a valid interest rate');
       return false;
     }
-
     if (!tenureMonths.trim() || parseInt(tenureMonths) <= 0) {
       Alert.alert('Validation Error', 'Please enter a valid tenure in months');
       return false;
     }
-
     if (!emiDueAmount.trim() || parseFloat(emiDueAmount) <= 0) {
       Alert.alert('Validation Error', 'Please enter a valid EMI amount');
       return false;
     }
-
     if (!outstandingBalance.trim() || parseFloat(outstandingBalance) <= 0) {
       Alert.alert('Validation Error', 'Please enter a valid outstanding balance');
       return false;
     }
-
     return true;
-  };
+  }, [customerName, issueDate, interestRate, tenureMonths, emiDueAmount, outstandingBalance]);
 
-  const handleSubmit = async () => {
+  const resetForm = useCallback(() => {
+    setCustomerName('');
+    setIssueDate('');
+    setInterestRate('');
+    setTenureMonths('');
+    setEmiDueAmount('');
+    setOutstandingBalance('');
+  }, []);
+
+  const handleSubmit = useCallback(async () => {
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
       const customerData = {
-        customer_name: formData.customerName,
-        issue_date: formData.issueDate,
-        interest_rate: parseFloat(formData.interestRate),
-        tenure_months: parseInt(formData.tenureMonths),
-        emi_due_amount: parseFloat(formData.emiDueAmount),
-        outstanding_balance: parseFloat(formData.outstandingBalance),
+        customer_name: customerName,
+        issue_date: issueDate,
+        interest_rate: parseFloat(interestRate),
+        tenure_months: parseInt(tenureMonths),
+        emi_due_amount: parseFloat(emiDueAmount),
+        outstanding_balance: parseFloat(outstandingBalance),
       };
 
       const result = await ApiService.createCustomer(customerData);
@@ -94,214 +84,222 @@ export default function AddCustomerScreen() {
       Alert.alert(
         '✓ Success',
         `Account created successfully!\n\nAccount Number: ${result.account_number}\nCustomer: ${result.customer_name}`,
-        [
-          {
-            text: 'Done',
-            onPress: () => {
-              setFormData({
-                customerName: '',
-                issueDate: '',
-                interestRate: '',
-                tenureMonths: '',
-                emiDueAmount: '',
-                outstandingBalance: '',
-              });
-            }
-          }
-        ]
+        [{ text: 'Done', onPress: resetForm }]
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to create customer. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const InputField = ({ 
-    icon, 
-    label, 
-    placeholder, 
-    value, 
-    onChangeText, 
-    keyboardType = 'default',
-    fieldName
-  }: any) => {
-    const isFocused = focusedField === fieldName;
-    const hasValue = value.length > 0;
-
-    return (
-      <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, isFocused && styles.inputLabelFocused]}>
-          {label}
-        </Text>
-        <View style={[
-          styles.inputWrapper,
-          isFocused && styles.inputWrapperFocused,
-          hasValue && styles.inputWrapperFilled
-        ]}>
-          <View style={[styles.iconContainer, isFocused && styles.iconContainerFocused]}>
-            {React.cloneElement(icon, { 
-              color: isFocused ? '#7c3aed' : hasValue ? '#059669' : '#9ca3af',
-              size: 22 
-            })}
-          </View>
-          <TextInput
-            style={styles.textInput}
-            placeholder={placeholder}
-            placeholderTextColor="#9ca3af"
-            value={value}
-            onChangeText={onChangeText}
-            keyboardType={keyboardType}
-            autoCorrect={false}
-            onFocus={() => setFocusedField(fieldName)}
-            onBlur={() => setFocusedField(null)}
-          />
-          {hasValue && !isFocused && (
-            <CheckCircle size={18} color="#059669" style={styles.checkIcon} />
-          )}
-        </View>
-      </View>
-    );
-  };
+  }, [validateForm, customerName, issueDate, interestRate, tenureMonths, emiDueAmount, outstandingBalance, resetForm]);
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <ScrollView 
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="none"
     >
-      <ScrollView 
-        style={styles.container} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+      <LinearGradient
+        colors={['#7c3aed', '#5b21b6', '#4c1d95']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
       >
-        <LinearGradient
-          colors={['#7c3aed', '#5b21b6', '#4c1d95']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <View style={styles.headerIconContainer}>
-            <UserPlus size={36} color="#ffffff" strokeWidth={2.5} />
+        <View style={styles.headerIconContainer}>
+          <UserPlus size={36} color="#ffffff" strokeWidth={2.5} />
+        </View>
+        <Text style={styles.headerTitle}>Add New Customer</Text>
+        <Text style={styles.headerSubtitle}>Create a new loan account with ease</Text>
+      </LinearGradient>
+
+      <View style={styles.contentContainer}>
+        <View style={styles.formCard}>
+          <View style={styles.formHeader}>
+            <Text style={styles.formTitle}>Customer Details</Text>
+            <View style={styles.formBadge}>
+              <Text style={styles.formBadgeText}>Required</Text>
+            </View>
           </View>
-          <Text style={styles.headerTitle}>Add New Customer</Text>
-          <Text style={styles.headerSubtitle}>Create a new loan account with ease</Text>
-        </LinearGradient>
 
-        <View style={styles.contentContainer}>
-          <View style={styles.formCard}>
-            <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>Customer Details</Text>
-              <View style={styles.formBadge}>
-                <Text style={styles.formBadgeText}>Required</Text>
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Customer Name</Text>
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <User size={22} color={customerName ? '#059669' : '#9ca3af'} />
+              </View>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Enter full name"
+                placeholderTextColor="#9ca3af"
+                value={customerName}
+                onChangeText={setCustomerName}
+                autoCorrect={false}
+                blurOnSubmit={false}
+                returnKeyType="next"
+              />
+              {customerName.length > 0 && (
+                <CheckCircle size={18} color="#059669" style={styles.checkIcon} />
+              )}
+            </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Issue Date</Text>
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <Calendar size={22} color={issueDate ? '#059669' : '#9ca3af'} />
+              </View>
+              <TextInput
+                style={styles.textInput}
+                placeholder="DD-MM-YYYY"
+                placeholderTextColor="#9ca3af"
+                value={issueDate}
+                onChangeText={setIssueDate}
+                autoCorrect={false}
+                blurOnSubmit={false}
+                returnKeyType="next"
+              />
+              {issueDate.length > 0 && (
+                <CheckCircle size={18} color="#059669" style={styles.checkIcon} />
+              )}
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.halfWidth}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Interest Rate</Text>
+                <View style={styles.inputWrapper}>
+                  <View style={styles.iconContainer}>
+                    <Percent size={22} color={interestRate ? '#059669' : '#9ca3af'} />
+                  </View>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="12.5"
+                    placeholderTextColor="#9ca3af"
+                    value={interestRate}
+                    onChangeText={setInterestRate}
+                    keyboardType="decimal-pad"
+                    autoCorrect={false}
+                    blurOnSubmit={false}
+                    returnKeyType="next"
+                  />
+                </View>
               </View>
             </View>
 
-            <InputField
-              icon={<User />}
-              label="Customer Name"
-              placeholder="Enter full name"
-              value={formData.customerName}
-              onChangeText={(value: string) => updateField('customerName', value)}
-              fieldName="customerName"
-            />
-
-            <InputField
-              icon={<Calendar />}
-              label="Issue Date"
-              placeholder="DD-MM-YYYY"
-              value={formData.issueDate}
-              onChangeText={(value: string) => updateField('issueDate', value)}
-              fieldName="issueDate"
-            />
-
-            <View style={styles.row}>
-              <View style={styles.halfWidth}>
-                <InputField
-                  icon={<Percent />}
-                  label="Interest Rate"
-                  placeholder="12.5"
-                  value={formData.interestRate}
-                  onChangeText={(value: string) => updateField('interestRate', value)}
-                  keyboardType="decimal-pad"
-                  fieldName="interestRate"
-                />
-              </View>
-
-              <View style={styles.halfWidth}>
-                <InputField
-                  icon={<Clock />}
-                  label="Tenure (Months)"
-                  placeholder="24"
-                  value={formData.tenureMonths}
-                  onChangeText={(value: string) => updateField('tenureMonths', value)}
-                  keyboardType="number-pad"
-                  fieldName="tenureMonths"
-                />
+            <View style={styles.halfWidth}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Tenure (Months)</Text>
+                <View style={styles.inputWrapper}>
+                  <View style={styles.iconContainer}>
+                    <Clock size={22} color={tenureMonths ? '#059669' : '#9ca3af'} />
+                  </View>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="24"
+                    placeholderTextColor="#9ca3af"
+                    value={tenureMonths}
+                    onChangeText={setTenureMonths}
+                    keyboardType="number-pad"
+                    autoCorrect={false}
+                    blurOnSubmit={false}
+                    returnKeyType="next"
+                  />
+                </View>
               </View>
             </View>
+          </View>
 
-            <InputField
-              icon={<DollarSign />}
-              label="Monthly EMI Amount"
-              placeholder="₹ 5,000"
-              value={formData.emiDueAmount}
-              onChangeText={(value: string) => updateField('emiDueAmount', value)}
-              keyboardType="decimal-pad"
-              fieldName="emiDueAmount"
-            />
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Monthly EMI Amount</Text>
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <DollarSign size={22} color={emiDueAmount ? '#059669' : '#9ca3af'} />
+              </View>
+              <TextInput
+                style={styles.textInput}
+                placeholder="₹ 5,000"
+                placeholderTextColor="#9ca3af"
+                value={emiDueAmount}
+                onChangeText={setEmiDueAmount}
+                keyboardType="decimal-pad"
+                autoCorrect={false}
+                blurOnSubmit={false}
+                returnKeyType="next"
+              />
+              {emiDueAmount.length > 0 && (
+                <CheckCircle size={18} color="#059669" style={styles.checkIcon} />
+              )}
+            </View>
+          </View>
 
-            <InputField
-              icon={<DollarSign />}
-              label="Outstanding Balance"
-              placeholder="₹ 1,00,000"
-              value={formData.outstandingBalance}
-              onChangeText={(value: string) => updateField('outstandingBalance', value)}
-              keyboardType="decimal-pad"
-              fieldName="outstandingBalance"
-            />
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Outstanding Balance</Text>
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <DollarSign size={22} color={outstandingBalance ? '#059669' : '#9ca3af'} />
+              </View>
+              <TextInput
+                style={styles.textInput}
+                placeholder="₹ 1,00,000"
+                placeholderTextColor="#9ca3af"
+                value={outstandingBalance}
+                onChangeText={setOutstandingBalance}
+                keyboardType="decimal-pad"
+                autoCorrect={false}
+                blurOnSubmit={false}
+                returnKeyType="done"
+              />
+              {outstandingBalance.length > 0 && (
+                <CheckCircle size={18} color="#059669" style={styles.checkIcon} />
+              )}
+            </View>
+          </View>
 
-            <TouchableOpacity
-              style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-              onPress={handleSubmit}
-              disabled={loading}
-              activeOpacity={0.8}
+          <TouchableOpacity
+            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={loading ? ['#9ca3af', '#6b7280'] : ['#7c3aed', '#5b21b6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.submitGradient}
             >
-              <LinearGradient
-                colors={loading ? ['#9ca3af', '#6b7280'] : ['#7c3aed', '#5b21b6']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitGradient}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" size="small" />
-                ) : (
-                  <UserPlus size={22} color="#ffffff" strokeWidth={2.5} />
-                )}
-                <Text style={styles.submitButtonText}>
-                  {loading ? 'Creating Account...' : 'Create Account'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <UserPlus size={22} color="#ffffff" strokeWidth={2.5} />
+              )}
+              <Text style={styles.submitButtonText}>
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
 
-          <View style={styles.infoCard}>
-            <View style={styles.infoHeader}>
-              <View style={styles.infoIconContainer}>
-                <CheckCircle size={20} color="#7c3aed" />
-              </View>
-              <Text style={styles.infoTitle}>Guidelines</Text>
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <View style={styles.infoIconContainer}>
+              <CheckCircle size={20} color="#7c3aed" />
             </View>
-            <View style={styles.infoList}>
-              <InfoItem text="Customer name should match official documents" />
-              <InfoItem text="Issue date format: DD-MM-YYYY" />
-              <InfoItem text="Interest rate should be annual percentage" />
-              <InfoItem text="All amounts should be in INR (₹)" />
-              <InfoItem text="Account number will be auto-generated" />
-            </View>
+            <Text style={styles.infoTitle}>Guidelines</Text>
+          </View>
+          <View style={styles.infoList}>
+            <InfoItem text="Customer name should match official documents" />
+            <InfoItem text="Issue date format: DD-MM-YYYY" />
+            <InfoItem text="Interest rate should be annual percentage" />
+            <InfoItem text="All amounts should be in INR (₹)" />
+            <InfoItem text="Account number will be auto-generated" />
           </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -388,7 +386,6 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 0,
   },
   halfWidth: {
     flex: 1,
@@ -403,9 +400,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 0.3,
   },
-  inputLabelFocused: {
-    color: '#7c3aed',
-  },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -415,20 +409,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: '#f9fafb',
-    transition: 'all 0.2s',
-  },
-  inputWrapperFocused: {
-    borderColor: '#7c3aed',
-    backgroundColor: '#ffffff',
-    shadowColor: '#7c3aed',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  inputWrapperFilled: {
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
   },
   iconContainer: {
     width: 40,
@@ -438,9 +418,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  },
-  iconContainerFocused: {
-    backgroundColor: '#ede9fe',
   },
   textInput: {
     flex: 1,

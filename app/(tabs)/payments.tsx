@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { CreditCard, DollarSign, CheckCircle, Hash, Sparkles, Info } from 'lucide-react-native';
 import { ApiService } from '@/services/api';
@@ -24,9 +23,8 @@ export default function PaymentsScreen() {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  const handlePayment = async () => {
+  const handlePayment = useCallback(async () => {
     if (!accountNumber.trim()) {
       Alert.alert('Error', 'Please enter an account number');
       return;
@@ -63,188 +61,156 @@ export default function PaymentsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accountNumber, amount]);
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <ScrollView 
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="none"
     >
-      <ScrollView 
-        style={styles.container} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+      <LinearGradient
+        colors={['#059669', '#047857', '#065f46']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
       >
-        <LinearGradient
-          colors={['#059669', '#047857', '#065f46']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <View style={styles.headerIconContainer}>
-            <CreditCard size={36} color="#ffffff" strokeWidth={2.5} />
-          </View>
-          <Text style={styles.headerTitle}>Process Payment</Text>
-          <Text style={styles.headerSubtitle}>Collect loan payments securely</Text>
-        </LinearGradient>
+        <View style={styles.headerIconContainer}>
+          <CreditCard size={36} color="#ffffff" strokeWidth={2.5} />
+        </View>
+        <Text style={styles.headerTitle}>Process Payment</Text>
+        <Text style={styles.headerSubtitle}>Collect loan payments securely</Text>
+      </LinearGradient>
 
-        <View style={styles.contentContainer}>
-          <View style={styles.formCard}>
-            <View style={styles.formHeader}>
-              <Text style={styles.formTitle}>Payment Details</Text>
-              <View style={styles.formBadge}>
-                <Sparkles size={14} color="#059669" />
-                <Text style={styles.formBadgeText}>Secure</Text>
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={[
-                styles.inputLabel,
-                focusedField === 'account' && styles.inputLabelFocused
-              ]}>
-                Account Number
-              </Text>
-              <View style={[
-                styles.inputWrapper,
-                focusedField === 'account' && styles.inputWrapperFocused,
-                accountNumber.length > 0 && styles.inputWrapperFilled
-              ]}>
-                <View style={[
-                  styles.iconContainer,
-                  focusedField === 'account' && styles.iconContainerFocused
-                ]}>
-                  <Hash 
-                    size={22} 
-                    color={focusedField === 'account' ? '#059669' : accountNumber.length > 0 ? '#7c3aed' : '#9ca3af'} 
-                  />
-                </View>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter customer account number"
-                  placeholderTextColor="#9ca3af"
-                  value={accountNumber}
-                  onChangeText={setAccountNumber}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  onFocus={() => setFocusedField('account')}
-                  onBlur={() => setFocusedField(null)}
-                />
-                {accountNumber.length > 0 && focusedField !== 'account' && (
-                  <CheckCircle size={18} color="#7c3aed" style={styles.checkIcon} />
-                )}
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={[
-                styles.inputLabel,
-                focusedField === 'amount' && styles.inputLabelFocused
-              ]}>
-                Payment Amount
-              </Text>
-              <View style={[
-                styles.inputWrapper,
-                focusedField === 'amount' && styles.inputWrapperFocused,
-                amount.length > 0 && styles.inputWrapperFilled
-              ]}>
-                <View style={[
-                  styles.iconContainer,
-                  focusedField === 'amount' && styles.iconContainerFocused
-                ]}>
-                  <DollarSign 
-                    size={22} 
-                    color={focusedField === 'amount' ? '#059669' : amount.length > 0 ? '#7c3aed' : '#9ca3af'} 
-                  />
-                </View>
-                <Text style={styles.currencySymbol}>₹</Text>
-                <TextInput
-                  style={[styles.textInput, styles.amountInput]}
-                  placeholder="0.00"
-                  placeholderTextColor="#9ca3af"
-                  value={amount}
-                  onChangeText={setAmount}
-                  keyboardType="decimal-pad"
-                  onFocus={() => setFocusedField('amount')}
-                  onBlur={() => setFocusedField(null)}
-                />
-                {amount.length > 0 && focusedField !== 'amount' && (
-                  <CheckCircle size={18} color="#7c3aed" style={styles.checkIcon} />
-                )}
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.paymentButton,
-                loading && styles.paymentButtonDisabled,
-                success && styles.paymentButtonSuccess,
-              ]}
-              onPress={handlePayment}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={
-                  loading 
-                    ? ['#9ca3af', '#6b7280'] 
-                    : success 
-                    ? ['#059669', '#047857'] 
-                    : ['#059669', '#047857']
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.paymentGradient}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" size="small" />
-                ) : success ? (
-                  <CheckCircle size={22} color="#ffffff" strokeWidth={2.5} />
-                ) : (
-                  <CreditCard size={22} color="#ffffff" strokeWidth={2.5} />
-                )}
-                <Text style={styles.paymentButtonText}>
-                  {loading ? 'Processing Payment...' : success ? 'Payment Successful!' : 'Process Payment'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.infoCard}>
-            <View style={styles.infoHeader}>
-              <View style={styles.infoIconContainer}>
-                <Info size={20} color="#059669" />
-              </View>
-              <Text style={styles.infoTitle}>Payment Guidelines</Text>
-            </View>
-            <View style={styles.infoList}>
-              <InfoItem text="Verify account number before processing payment" />
-              <InfoItem text="Amount should match EMI or outstanding balance" />
-              <InfoItem text="All payments are processed instantly" />
-              <InfoItem text="Receipt generated automatically after payment" />
-              <InfoItem text="Check Customers tab for quick account lookup" />
+      <View style={styles.contentContainer}>
+        <View style={styles.formCard}>
+          <View style={styles.formHeader}>
+            <Text style={styles.formTitle}>Payment Details</Text>
+            <View style={styles.formBadge}>
+              <Sparkles size={14} color="#059669" />
+              <Text style={styles.formBadgeText}>Secure</Text>
             </View>
           </View>
 
-          <View style={styles.tipCard}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Account Number</Text>
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <Hash size={22} color={accountNumber ? '#7c3aed' : '#9ca3af'} />
+              </View>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Enter customer account number"
+                placeholderTextColor="#9ca3af"
+                value={accountNumber}
+                onChangeText={setAccountNumber}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                blurOnSubmit={false}
+                returnKeyType="next"
+              />
+              {accountNumber.length > 0 && (
+                <CheckCircle size={18} color="#7c3aed" style={styles.checkIcon} />
+              )}
+            </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Payment Amount</Text>
+            <View style={styles.inputWrapper}>
+              <View style={styles.iconContainer}>
+                <DollarSign size={22} color={amount ? '#7c3aed' : '#9ca3af'} />
+              </View>
+              <Text style={styles.currencySymbol}>₹</Text>
+              <TextInput
+                style={[styles.textInput, styles.amountInput]}
+                placeholder="0.00"
+                placeholderTextColor="#9ca3af"
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="decimal-pad"
+                autoCorrect={false}
+                blurOnSubmit={false}
+                returnKeyType="done"
+              />
+              {amount.length > 0 && (
+                <CheckCircle size={18} color="#7c3aed" style={styles.checkIcon} />
+              )}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.paymentButton,
+              loading && styles.paymentButtonDisabled,
+              success && styles.paymentButtonSuccess,
+            ]}
+            onPress={handlePayment}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
             <LinearGradient
-              colors={['#fef3c7', '#fde68a']}
+              colors={
+                loading 
+                  ? ['#9ca3af', '#6b7280'] 
+                  : success 
+                  ? ['#059669', '#047857'] 
+                  : ['#059669', '#047857']
+              }
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.tipGradient}
+              end={{ x: 1, y: 0 }}
+              style={styles.paymentGradient}
             >
-              <Sparkles size={24} color="#d97706" />
-              <View style={styles.tipContent}>
-                <Text style={styles.tipTitle}>Quick Tip</Text>
-                <Text style={styles.tipText}>
-                  Navigate to the Customers tab to quickly find account details and EMI amounts before processing payments.
-                </Text>
-              </View>
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : success ? (
+                <CheckCircle size={22} color="#ffffff" strokeWidth={2.5} />
+              ) : (
+                <CreditCard size={22} color="#ffffff" strokeWidth={2.5} />
+              )}
+              <Text style={styles.paymentButtonText}>
+                {loading ? 'Processing Payment...' : success ? 'Payment Successful!' : 'Process Payment'}
+              </Text>
             </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <View style={styles.infoIconContainer}>
+              <Info size={20} color="#059669" />
+            </View>
+            <Text style={styles.infoTitle}>Payment Guidelines</Text>
+          </View>
+          <View style={styles.infoList}>
+            <InfoItem text="Verify account number before processing payment" />
+            <InfoItem text="Amount should match EMI or outstanding balance" />
+            <InfoItem text="All payments are processed instantly" />
+            <InfoItem text="Receipt generated automatically after payment" />
+            <InfoItem text="Check Customers tab for quick account lookup" />
           </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+        <View style={styles.tipCard}>
+          <LinearGradient
+            colors={['#fef3c7', '#fde68a']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tipGradient}
+          >
+            <Sparkles size={24} color="#d97706" />
+            <View style={styles.tipContent}>
+              <Text style={styles.tipTitle}>Quick Tip</Text>
+              <Text style={styles.tipText}>
+                Navigate to the Customers tab to quickly find account details and EMI amounts before processing payments.
+              </Text>
+            </View>
+          </LinearGradient>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -341,9 +307,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 0.3,
   },
-  inputLabelFocused: {
-    color: '#059669',
-  },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -354,19 +317,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: '#f9fafb',
   },
-  inputWrapperFocused: {
-    borderColor: '#059669',
-    backgroundColor: '#ffffff',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  inputWrapperFilled: {
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
-  },
   iconContainer: {
     width: 40,
     height: 40,
@@ -375,9 +325,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-  },
-  iconContainerFocused: {
-    backgroundColor: '#d1fae5',
   },
   currencySymbol: {
     fontSize: 18,
