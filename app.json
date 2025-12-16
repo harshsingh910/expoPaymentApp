@@ -18,7 +18,6 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE"
       ],
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#7c3aed"
@@ -41,7 +40,7 @@
       },
       "apiUrl": "https://uncerebric-karma-nonnitric.ngrok-free.dev/api",
       "eas": {
-        "projectId": "3c6e10c8-d200-4117-8c09-68b695727520"
+        "projectId": "ca2d5050-a521-4e4a-bcde-166aa6eb915e"
       }
     }
   }
