@@ -42,7 +42,7 @@ export interface ApiResponse<T> {
 
 
 // Use environment variable for API base URL, fallback to localhost for development
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://uncerebric-karma-nonnitric.ngrok-free.dev/api';
 
 export class ApiService {
   static async getCustomers(): Promise<Customer[]> {

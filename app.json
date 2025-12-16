@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "payment-app",
+    "name": "Payments App",
     "slug": "payment-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,20 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.blankpage.paymentapp"
+    },
+    "android": {
+      "package": "com.blankpage.paymentapp",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
+      "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#7c3aed"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -26,12 +39,10 @@
     },
     "extra": {
       "router": {},
+      "apiUrl": "https://uncerebric-karma-nonnitric.ngrok-free.dev/api",
       "eas": {
-        "projectId": "38d4a4d6-5af3-4cd7-a590-656935f86f6e"
+        "projectId": "3c6e10c8-d200-4117-8c09-68b695727520"
       }
-    },
-    "android": {
-      "package": "com.blankpage.paymentapp"
     }
   }
 }
