@@ -1,20 +1,30 @@
 import { Tabs } from 'expo-router';
-import { Users, CreditCard, UserPlus, ChartBar as BarChart3 } from 'lucide-react-native';
+import { Users, CreditCard, UserPlus, BarChart3 } from 'lucide-react-native';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1e40af',
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarActiveTintColor: '#7c3aed',
+        tabBarInactiveTintColor: '#9ca3af',
         tabBarStyle: {
           backgroundColor: '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 64,
+          borderTopWidth: 0,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          paddingTop: 12,
+          height: Platform.OS === 'ios' ? 88 : 68,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 20,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          letterSpacing: 0.3,
         },
       }}>
       <Tabs.Screen
@@ -22,7 +32,7 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ size, color }) => (
-            <BarChart3 size={size} color={color} />
+            <BarChart3 size={size} color={color} strokeWidth={2.5} />
           ),
         }}
       />
@@ -31,7 +41,7 @@ export default function TabLayout() {
         options={{
           title: 'Customers',
           tabBarIcon: ({ size, color }) => (
-            <Users size={size} color={color} />
+            <Users size={size} color={color} strokeWidth={2.5} />
           ),
         }}
       />
@@ -40,7 +50,7 @@ export default function TabLayout() {
         options={{
           title: 'Payments',
           tabBarIcon: ({ size, color }) => (
-            <CreditCard size={size} color={color} />
+            <CreditCard size={size} color={color} strokeWidth={2.5} />
           ),
         }}
       />
@@ -49,7 +59,7 @@ export default function TabLayout() {
         options={{
           title: 'Add Customer',
           tabBarIcon: ({ size, color }) => (
-            <UserPlus size={size} color={color} />
+            <UserPlus size={size} color={color} strokeWidth={2.5} />
           ),
         }}
       />

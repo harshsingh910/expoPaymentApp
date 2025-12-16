@@ -8,14 +8,21 @@ import {
   RefreshControl,
   Alert,
   TextInput,
+  Platform,
+  Dimensions,
+  Animated,
 } from 'react-native';
-import { Search, ListFilter as Filter, ArrowUpDown } from 'lucide-react-native';
+import { Search, Filter, ArrowUpDown, TrendingUp, Users as UsersIcon, ChevronRight, DollarSign, Percent } from 'lucide-react-native';
 import { ApiService } from '@/services/api';
 import { Customer } from '@/types/customer';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type SortOption = 'name' | 'balance' | 'emi' | 'rate';
 type SortDirection = 'asc' | 'desc';
+
+const { width } = Dimensions.get('window');
+const isSmallScreen = width < 375;
 
 export default function CustomersScreen() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -25,6 +32,7 @@ export default function CustomersScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchCustomers = async () => {
     try {
@@ -110,32 +118,80 @@ export default function CustomersScreen() {
     router.push(`/customer-detail/${customer.account_number}`);
   };
 
+  const getTotalOutstanding = () => {
+    return filteredCustomers.reduce(
+      (sum, customer) => sum + parseFloat(customer.outstanding_balance),
+      0
+    );
+  };
+
   const CustomerCard = ({ customer }: { customer: Customer }) => (
     <TouchableOpacity 
       style={styles.customerCard}
       onPress={() => navigateToCustomerDetail(customer)}
+      activeOpacity={0.8}
     >
-      <View style={styles.customerHeader}>
-        <Text style={styles.customerName}>{customer.customer_name}</Text>
-        <Text style={styles.accountNumber}>{customer.account_number}</Text>
+      <View style={styles.cardHeader}>
+        <View style={styles.avatarContainer}>
+          <LinearGradient
+            colors={['#02ff96ff', '#595cffff']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.avatarGradient}
+          >
+            <Text style={styles.avatarText}>
+              {customer.customer_name.charAt(0).toUpperCase()}
+            </Text>
+          </LinearGradient>
+        </View>
+        <View style={styles.customerInfo}>
+          <Text style={styles.customerName} numberOfLines={1}>
+            {customer.customer_name}
+          </Text>
+          <Text style={styles.accountNumber}>{customer.account_number}</Text>
+        </View>
+        <View style={styles.chevronContainer}>
+          <ChevronRight size={18} color="#94a3b8" />
+        </View>
       </View>
       
-      <View style={styles.customerDetails}>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Outstanding</Text>
-          <Text style={styles.detailValue}>₹{parseFloat(customer.outstanding_balance).toLocaleString('en-IN')}</Text>
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <View style={styles.statIconBox}>
+            <DollarSign size={14} color="#06b6d4" strokeWidth={2.5} />
+          </View>
+          <View style={styles.statContent}>
+            <Text style={styles.statLabel}>Outstanding</Text>
+            <Text style={styles.statValue}>
+              ₹{(parseFloat(customer.outstanding_balance) / 1000).toFixed(1)}K
+            </Text>
+          </View>
         </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>EMI Due</Text>
-          <Text style={styles.detailValue}>₹{parseFloat(customer.emi_due_amount).toLocaleString('en-IN')}</Text>
+
+        <View style={styles.statDivider} />
+
+        <View style={styles.statItem}>
+          <View style={[styles.statIconBox, { backgroundColor: '#fef3c7' }]}>
+            <DollarSign size={14} color="#f59e0b" strokeWidth={2.5} />
+          </View>
+          <View style={styles.statContent}>
+            <Text style={styles.statLabel}>EMI</Text>
+            <Text style={styles.statValue}>
+              ₹{(parseFloat(customer.emi_due_amount) / 1000).toFixed(1)}K
+            </Text>
+          </View>
         </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Interest Rate</Text>
-          <Text style={styles.detailValue}>{customer.interest_rate}%</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Tenure</Text>
-          <Text style={styles.detailValue}>{customer.tenure_months} months</Text>
+
+        <View style={styles.statDivider} />
+
+        <View style={styles.statItem}>
+          <View style={[styles.statIconBox, { backgroundColor: '#fce7f3' }]}>
+            <Percent size={14} color="#ec4899" strokeWidth={2.5} />
+          </View>
+          <View style={styles.statContent}>
+            <Text style={styles.statLabel}>Rate</Text>
+            <Text style={styles.statValue}>{customer.interest_rate}%</Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -148,6 +204,7 @@ export default function CustomersScreen() {
         sortBy === option && styles.activeSortButton
       ]}
       onPress={() => handleSort(option)}
+      activeOpacity={0.7}
     >
       <Text style={[
         styles.sortButtonText,
@@ -157,8 +214,8 @@ export default function CustomersScreen() {
       </Text>
       {sortBy === option && (
         <ArrowUpDown 
-          size={16} 
-          color="#1e40af" 
+          size={12} 
+          color="#06b6d4" 
           style={{
             transform: [{ rotate: sortDirection === 'desc' ? '180deg' : '0deg' }]
           }}
@@ -167,53 +224,137 @@ export default function CustomersScreen() {
     </TouchableOpacity>
   );
 
+  const ListHeaderComponent = () => (
+    <>
+      <View style={styles.statsCard}>
+        <LinearGradient
+          colors={['#06b6d4', '#387dffff', '#6441ffff']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.statsGradient}
+        >
+          <View style={styles.statsRow}>
+            <View style={styles.statBlock}>
+              <View style={styles.statIconContainer}>
+                <UsersIcon size={20} color="rgba(0, 0, 0, 0.9)" strokeWidth={2.5} />
+              </View>
+              <Text style={styles.statBlockValue}>{filteredCustomers.length}</Text>
+              <Text style={styles.statBlockLabel}>Active</Text>
+            </View>
+            <View style={styles.statBlockDivider} />
+            <View style={styles.statBlock}>
+              <View style={styles.statIconContainer}>
+                <TrendingUp size={20} color="rgba(0, 0, 0, 0.9)" strokeWidth={2.5} />
+              </View>
+              <Text style={styles.statBlockValue}>
+                ₹{(getTotalOutstanding() / 100000).toFixed(1)}L
+              </Text>
+              <Text style={styles.statBlockLabel}>Outstanding</Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Search size={18} color="#94a3b8" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search customers..."
+            placeholderTextColor="#94a3b8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.clearButton}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <TouchableOpacity 
+          style={[styles.filterButton, showFilters && styles.filterButtonActive]}
+          onPress={() => setShowFilters(!showFilters)}
+          activeOpacity={0.7}
+        >
+          <Filter size={18} color={showFilters ? '#06b6d4' : '#64748b'} strokeWidth={2.5} />
+        </TouchableOpacity>
+      </View>
+
+      {showFilters && (
+        <View style={styles.sortContainer}>
+          <Text style={styles.sortLabel}>Sort by</Text>
+          <View style={styles.sortButtons}>
+            <SortButton option="name" label="Name" />
+            <SortButton option="balance" label="Balance" />
+            <SortButton option="emi" label="EMI" />
+            <SortButton option="rate" label="Rate" />
+          </View>
+        </View>
+      )}
+
+      <View style={styles.listHeader}>
+        <Text style={styles.listTitle}>All Accounts</Text>
+        <View style={styles.countBadge}>
+          <Text style={styles.countBadgeText}>{filteredCustomers.length}</Text>
+        </View>
+      </View>
+    </>
+  );
+
+  const EmptyComponent = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconContainer}>
+        <UsersIcon size={40} color="#cbd5e1" strokeWidth={1.5} />
+      </View>
+      <Text style={styles.emptyTitle}>No customers found</Text>
+      <Text style={styles.emptyText}>
+        {searchQuery ? 'Try a different search term' : 'Add your first customer to get started'}
+      </Text>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading customers...</Text>
+        <LinearGradient
+          colors={['#06b6d4', '#0891b2']}
+          style={styles.loadingGradient}
+        >
+          <Animated.View>
+            <UsersIcon size={48} color="#ffffff" strokeWidth={2} />
+          </Animated.View>
+          <Text style={styles.loadingText}>Loading customers...</Text>
+        </LinearGradient>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient
+        colors={['#06b6d4', '#0891b2', '#0e7490']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <Text style={styles.headerTitle}>Customers</Text>
-        <Text style={styles.headerSubtitle}>{filteredCustomers.length} loan accounts</Text>
-      </View>
-
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Search size={20} color="#6b7280" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by name or account number"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-      </View>
-
-      <View style={styles.sortContainer}>
-        <View style={styles.sortHeader}>
-          <Filter size={16} color="#6b7280" />
-          <Text style={styles.sortLabel}>Sort by:</Text>
-        </View>
-        <View style={styles.sortButtons}>
-          <SortButton option="name" label="Name" />
-          <SortButton option="balance" label="Balance" />
-          <SortButton option="emi" label="EMI" />
-          <SortButton option="rate" label="Rate" />
-        </View>
-      </View>
+        <Text style={styles.headerSubtitle}>Manage loan accounts</Text>
+      </LinearGradient>
 
       <FlatList
         data={filteredCustomers}
         renderItem={({ item }) => <CustomerCard customer={item} />}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={ListHeaderComponent}
+        ListEmptyComponent={EmptyComponent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor="#06b6d4"
+            colors={['#06b6d4']}
+          />
         }
         showsVerticalScrollIndicator={false}
       />
@@ -228,140 +369,332 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#f8fafc',
   },
+  loadingGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginTop: 16,
   },
   header: {
-    padding: 24,
-    paddingTop: 64,
-    backgroundColor: '#1e40af',
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: isSmallScreen ? 26 : 32,
+    fontWeight: '800',
     color: '#ffffff',
     marginBottom: 4,
+    letterSpacing: 0.3,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: '#bfdbfe',
+    fontSize: isSmallScreen ? 13 : 15,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
+  listContainer: {
+    paddingBottom: 100,
+  },
+  statsCard: {
+    marginHorizontal: 16,
+    marginTop: -2,
+    marginBottom: 16,
+    borderRadius: 16,
+    backgroundColor: '#fdff7bff',
+    overflow: 'hidden',
+    shadowColor: '#06b6d4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  statsGradient: {
+    padding: 20,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  statBlock: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  statBlockValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#6f00ffff',
+    marginBottom: 2,
+  },
+  statBlockLabel: {
+    fontSize: 12,
+    color: 'rgba(0, 0, 0, 0.85)',
+    fontWeight: '600',
+  },
+  statBlockDivider: {
+    width: 1,
+    height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   searchContainer: {
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 10,
   },
   searchInputContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 10,
+    fontSize: 15,
+    color: '#0f172a',
+    fontWeight: '500',
+  },
+  clearButton: {
     fontSize: 16,
-    color: '#111827',
+    color: '#94a3b8',
+    padding: 2,
+  },
+  filterButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  filterButtonActive: {
+    backgroundColor: '#cffafe',
   },
   sortContainer: {
     backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  sortHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginHorizontal: 16,
+    padding: 14,
+    borderRadius: 12,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   sortLabel: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '700',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   sortButtons: {
     flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
   },
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
     backgroundColor: '#ffffff',
   },
   activeSortButton: {
-    borderColor: '#1e40af',
-    backgroundColor: '#eff6ff',
+    borderColor: '#06b6d4',
+    backgroundColor: '#cffafe',
   },
   sortButtonText: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '600',
     marginRight: 4,
   },
   activeSortButtonText: {
-    color: '#1e40af',
-    fontWeight: '500',
+    color: '#06b6d4',
   },
-  listContainer: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  customerCard: {
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  customerHeader: {
-    marginBottom: 12,
-  },
-  customerName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  accountNumber: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  customerDetails: {
-    gap: 8,
-  },
-  detailRow: {
+  listHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
-  detailLabel: {
-    fontSize: 14,
-    color: '#6b7280',
+  listTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
   },
-  detailValue: {
-    fontSize: 14,
+  countBadge: {
+    backgroundColor: '#cffafe',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  countBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0891b2',
+  },
+  customerCard: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 14,
+    padding: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarContainer: {
+    marginRight: 10,
+  },
+  avatarGradient: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  customerInfo: {
+    flex: 1,
+  },
+  customerName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 2,
+  },
+  accountNumber: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  chevronContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    padding: 10,
+  },
+  statItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#cffafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  statContent: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: '#64748b',
     fontWeight: '600',
-    color: '#111827',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 8,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 6,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

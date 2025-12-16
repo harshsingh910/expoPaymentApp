@@ -8,9 +8,16 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
+  Dimensions,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { UserPlus, User, Calendar, Percent, Clock, DollarSign } from 'lucide-react-native';
+import { UserPlus, User, Calendar, Percent, Clock, DollarSign, CheckCircle } from 'lucide-react-native';
 import { ApiService } from '@/services/api';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
+const isSmallScreen = width < 375;
 
 export default function AddCustomerScreen() {
   const [formData, setFormData] = useState({
@@ -22,6 +29,7 @@ export default function AddCustomerScreen() {
     outstandingBalance: '',
   });
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const updateField = (field: string, value: string) => {
     setFormData(prev => ({
@@ -34,32 +42,32 @@ export default function AddCustomerScreen() {
     const { customerName, issueDate, interestRate, tenureMonths, emiDueAmount, outstandingBalance } = formData;
     
     if (!customerName.trim()) {
-      Alert.alert('Error', 'Please enter customer name');
+      Alert.alert('Validation Error', 'Please enter customer name');
       return false;
     }
 
     if (!issueDate.trim()) {
-      Alert.alert('Error', 'Please enter issue date');
+      Alert.alert('Validation Error', 'Please enter issue date');
       return false;
     }
 
     if (!interestRate.trim() || parseFloat(interestRate) <= 0) {
-      Alert.alert('Error', 'Please enter a valid interest rate');
+      Alert.alert('Validation Error', 'Please enter a valid interest rate');
       return false;
     }
 
     if (!tenureMonths.trim() || parseInt(tenureMonths) <= 0) {
-      Alert.alert('Error', 'Please enter a valid tenure in months');
+      Alert.alert('Validation Error', 'Please enter a valid tenure in months');
       return false;
     }
 
     if (!emiDueAmount.trim() || parseFloat(emiDueAmount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid EMI amount');
+      Alert.alert('Validation Error', 'Please enter a valid EMI amount');
       return false;
     }
 
     if (!outstandingBalance.trim() || parseFloat(outstandingBalance) <= 0) {
-      Alert.alert('Error', 'Please enter a valid outstanding balance');
+      Alert.alert('Validation Error', 'Please enter a valid outstanding balance');
       return false;
     }
 
@@ -84,11 +92,11 @@ export default function AddCustomerScreen() {
       const result = await ApiService.createCustomer(customerData);
 
       Alert.alert(
-        'Customer Added Successfully',
-        `Account Number: ${result.account_number}\nCustomer: ${result.customer_name}`,
+        '✓ Success',
+        `Account created successfully!\n\nAccount Number: ${result.account_number}\nCustomer: ${result.customer_name}`,
         [
           {
-            text: 'OK',
+            text: 'Done',
             onPress: () => {
               setFormData({
                 customerName: '',
@@ -115,226 +123,408 @@ export default function AddCustomerScreen() {
     placeholder, 
     value, 
     onChangeText, 
-    keyboardType = 'default' 
-  }: any) => (
-    <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <View style={styles.inputWrapper}>
-        {icon}
-        <TextInput
-          style={styles.textInput}
-          placeholder={placeholder}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={keyboardType}
-          autoCorrect={false}
-        />
-      </View>
-    </View>
-  );
+    keyboardType = 'default',
+    fieldName
+  }: any) => {
+    const isFocused = focusedField === fieldName;
+    const hasValue = value.length > 0;
 
-  return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <UserPlus size={32} color="#ffffff" />
-        <Text style={styles.headerTitle}>Add New Customer</Text>
-        <Text style={styles.headerSubtitle}>Create a new loan account</Text>
-      </View>
-
-      <View style={styles.formContainer}>
-        <InputField
-          icon={<User size={20} color="#6b7280" />}
-          label="Customer Name"
-          placeholder="Enter full name"
-          value={formData.customerName}
-          onChangeText={(value: string) => updateField('customerName', value)}
-        />
-
-        <InputField
-          icon={<Calendar size={20} color="#6b7280" />}
-          label="Issue Date"
-          placeholder="DD-MM-YYYY"
-          value={formData.issueDate}
-          onChangeText={(value: string) => updateField('issueDate', value)}
-        />
-
-        <InputField
-          icon={<Percent size={20} color="#6b7280" />}
-          label="Interest Rate (%)"
-          placeholder="Enter annual interest rate"
-          value={formData.interestRate}
-          onChangeText={(value: string) => updateField('interestRate', value)}
-          keyboardType="decimal-pad"
-        />
-
-        <InputField
-          icon={<Clock size={20} color="#6b7280" />}
-          label="Tenure (Months)"
-          placeholder="Enter loan tenure in months"
-          value={formData.tenureMonths}
-          onChangeText={(value: string) => updateField('tenureMonths', value)}
-          keyboardType="number-pad"
-        />
-
-        <InputField
-          icon={<DollarSign size={20} color="#6b7280" />}
-          label="EMI Due Amount (₹)"
-          placeholder="Enter monthly EMI amount"
-          value={formData.emiDueAmount}
-          onChangeText={(value: string) => updateField('emiDueAmount', value)}
-          keyboardType="decimal-pad"
-        />
-
-        <InputField
-          icon={<DollarSign size={20} color="#6b7280" />}
-          label="Outstanding Balance (₹)"
-          placeholder="Enter total outstanding balance"
-          value={formData.outstandingBalance}
-          onChangeText={(value: string) => updateField('outstandingBalance', value)}
-          keyboardType="decimal-pad"
-        />
-
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#ffffff" size="small" />
-          ) : (
-            <UserPlus size={20} color="#ffffff" />
-          )}
-          <Text style={styles.submitButtonText}>
-            {loading ? 'Creating Account...' : 'Create Customer Account'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.infoContainer}>
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Account Creation Guidelines</Text>
-          <View style={styles.infoList}>
-            <Text style={styles.infoItem}>• Customer name should match official documents</Text>
-            <Text style={styles.infoItem}>• Issue date format: DD-MM-YYYY</Text>
-            <Text style={styles.infoItem}>• Interest rate should be annual percentage</Text>
-            <Text style={styles.infoItem}>• All amounts should be in INR</Text>
-            <Text style={styles.infoItem}>• Account number will be auto-generated</Text>
+    return (
+      <View style={styles.inputContainer}>
+        <Text style={[styles.inputLabel, isFocused && styles.inputLabelFocused]}>
+          {label}
+        </Text>
+        <View style={[
+          styles.inputWrapper,
+          isFocused && styles.inputWrapperFocused,
+          hasValue && styles.inputWrapperFilled
+        ]}>
+          <View style={[styles.iconContainer, isFocused && styles.iconContainerFocused]}>
+            {React.cloneElement(icon, { 
+              color: isFocused ? '#7c3aed' : hasValue ? '#059669' : '#9ca3af',
+              size: 22 
+            })}
           </View>
+          <TextInput
+            style={styles.textInput}
+            placeholder={placeholder}
+            placeholderTextColor="#9ca3af"
+            value={value}
+            onChangeText={onChangeText}
+            keyboardType={keyboardType}
+            autoCorrect={false}
+            onFocus={() => setFocusedField(fieldName)}
+            onBlur={() => setFocusedField(null)}
+          />
+          {hasValue && !isFocused && (
+            <CheckCircle size={18} color="#059669" style={styles.checkIcon} />
+          )}
         </View>
       </View>
-    </ScrollView>
+    );
+  };
+
+  return (
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <LinearGradient
+          colors={['#7c3aed', '#5b21b6', '#4c1d95']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          <View style={styles.headerIconContainer}>
+            <UserPlus size={36} color="#ffffff" strokeWidth={2.5} />
+          </View>
+          <Text style={styles.headerTitle}>Add New Customer</Text>
+          <Text style={styles.headerSubtitle}>Create a new loan account with ease</Text>
+        </LinearGradient>
+
+        <View style={styles.contentContainer}>
+          <View style={styles.formCard}>
+            <View style={styles.formHeader}>
+              <Text style={styles.formTitle}>Customer Details</Text>
+              <View style={styles.formBadge}>
+                <Text style={styles.formBadgeText}>Required</Text>
+              </View>
+            </View>
+
+            <InputField
+              icon={<User />}
+              label="Customer Name"
+              placeholder="Enter full name"
+              value={formData.customerName}
+              onChangeText={(value: string) => updateField('customerName', value)}
+              fieldName="customerName"
+            />
+
+            <InputField
+              icon={<Calendar />}
+              label="Issue Date"
+              placeholder="DD-MM-YYYY"
+              value={formData.issueDate}
+              onChangeText={(value: string) => updateField('issueDate', value)}
+              fieldName="issueDate"
+            />
+
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                <InputField
+                  icon={<Percent />}
+                  label="Interest Rate"
+                  placeholder="12.5"
+                  value={formData.interestRate}
+                  onChangeText={(value: string) => updateField('interestRate', value)}
+                  keyboardType="decimal-pad"
+                  fieldName="interestRate"
+                />
+              </View>
+
+              <View style={styles.halfWidth}>
+                <InputField
+                  icon={<Clock />}
+                  label="Tenure (Months)"
+                  placeholder="24"
+                  value={formData.tenureMonths}
+                  onChangeText={(value: string) => updateField('tenureMonths', value)}
+                  keyboardType="number-pad"
+                  fieldName="tenureMonths"
+                />
+              </View>
+            </View>
+
+            <InputField
+              icon={<DollarSign />}
+              label="Monthly EMI Amount"
+              placeholder="₹ 5,000"
+              value={formData.emiDueAmount}
+              onChangeText={(value: string) => updateField('emiDueAmount', value)}
+              keyboardType="decimal-pad"
+              fieldName="emiDueAmount"
+            />
+
+            <InputField
+              icon={<DollarSign />}
+              label="Outstanding Balance"
+              placeholder="₹ 1,00,000"
+              value={formData.outstandingBalance}
+              onChangeText={(value: string) => updateField('outstandingBalance', value)}
+              keyboardType="decimal-pad"
+              fieldName="outstandingBalance"
+            />
+
+            <TouchableOpacity
+              style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={loading ? ['#9ca3af', '#6b7280'] : ['#7c3aed', '#5b21b6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitGradient}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <UserPlus size={22} color="#ffffff" strokeWidth={2.5} />
+                )}
+                <Text style={styles.submitButtonText}>
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.infoCard}>
+            <View style={styles.infoHeader}>
+              <View style={styles.infoIconContainer}>
+                <CheckCircle size={20} color="#7c3aed" />
+              </View>
+              <Text style={styles.infoTitle}>Guidelines</Text>
+            </View>
+            <View style={styles.infoList}>
+              <InfoItem text="Customer name should match official documents" />
+              <InfoItem text="Issue date format: DD-MM-YYYY" />
+              <InfoItem text="Interest rate should be annual percentage" />
+              <InfoItem text="All amounts should be in INR (₹)" />
+              <InfoItem text="Account number will be auto-generated" />
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const InfoItem = ({ text }: { text: string }) => (
+  <View style={styles.infoItemContainer}>
+    <View style={styles.infoDot} />
+    <Text style={styles.infoItem}>{text}</Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f9fafb',
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   header: {
-    padding: 24,
-    paddingTop: 64,
-    backgroundColor: '#7c3aed',
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
     alignItems: 'center',
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: isSmallScreen ? 26 : 32,
+    fontWeight: '800',
     color: '#ffffff',
-    marginTop: 12,
-    marginBottom: 4,
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: '#ddd6fe',
+    fontSize: isSmallScreen ? 14 : 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
   },
-  formContainer: {
-    padding: 24,
+  contentContainer: {
+    marginTop: -20,
+    paddingHorizontal: 20,
+  },
+  formCard: {
     backgroundColor: '#ffffff',
-    margin: 16,
-    borderRadius: 12,
+    borderRadius: 24,
+    padding: 24,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  formHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  formBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  formBadgeText: {
+    color: '#92400e',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 0,
+  },
+  halfWidth: {
+    flex: 1,
   },
   inputContainer: {
     marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: '#4b5563',
     marginBottom: 8,
+    letterSpacing: 0.3,
+  },
+  inputLabelFocused: {
+    color: '#7c3aed',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    backgroundColor: '#f9fafb',
+    transition: 'all 0.2s',
+  },
+  inputWrapperFocused: {
+    borderColor: '#7c3aed',
     backgroundColor: '#ffffff',
+    shadowColor: '#7c3aed',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  inputWrapperFilled: {
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  iconContainerFocused: {
+    backgroundColor: '#ede9fe',
   },
   textInput: {
     flex: 1,
-    marginLeft: 8,
     fontSize: 16,
     color: '#111827',
+    fontWeight: '500',
+  },
+  checkIcon: {
+    marginLeft: 8,
   },
   submitButton: {
+    marginTop: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#7c3aed',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  submitButtonDisabled: {
+    shadowOpacity: 0.1,
+  },
+  submitGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7c3aed',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 12,
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#9ca3af',
   },
   submitButtonText: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  infoContainer: {
-    padding: 16,
-    paddingBottom: 100,
+    fontSize: 17,
+    fontWeight: '700',
+    marginLeft: 10,
+    letterSpacing: 0.5,
   },
   infoCard: {
     backgroundColor: '#ffffff',
+    borderRadius: 20,
     padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  infoIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#ede9fe',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   infoTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#111827',
-    marginBottom: 12,
   },
   infoList: {
-    gap: 8,
+    gap: 12,
+  },
+  infoItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  infoDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#7c3aed',
+    marginTop: 6,
+    marginRight: 12,
   },
   infoItem: {
+    flex: 1,
     fontSize: 14,
     color: '#6b7280',
     lineHeight: 20,
+    fontWeight: '500',
   },
 });
